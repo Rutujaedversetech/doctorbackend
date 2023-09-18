@@ -8,6 +8,9 @@ const userSchema=new mongoose.Schema({
     oppointment_email:{type:String},
     date:{type:String},
     mobileNo:{type:String},
+    isLoggedin:{type:Boolean,default:false},
+    isLoggedinTime:{type:String},
+
     is_superAdmin:{
         type:Boolean,
         enum:['true','false'],

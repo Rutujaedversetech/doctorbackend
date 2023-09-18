@@ -35,10 +35,17 @@ const detailRoute=require("./features/servicedetails/servicedetails.router")
 const promotionRoute=require("./features/promotion/promotion.router")
 const videoRoute=require("./features/videoadd/video.router")
 
+const SlotRoute=require("./features/slot/slot.router")
+const AboutRoute=require("./features/aboutus/about.router")
+const DateholidayRoute=require("./features/dateholiday/dateholiday.router")
+const SlotholidayRoute=require("./features/slotholiday/slotholiday.router")
+const FamilyRoute=require("./features/family/family.router")
 
 
 app.use("/users",userRoute)
 app.use("/contact",contactRoute)
+app.use("/family",FamilyRoute)
+
 app.use("/blogs",cartRoute)
 app.use("/application",jobapplicationRoute)
 app.use("/slideshow",slideshowRoute)
@@ -48,6 +55,13 @@ app.use("/card",cardRoute)
 app.use("/detail",detailRoute)
 app.use("/promotion",promotionRoute)
 app.use("/video",videoRoute)
+app.use("/slot",SlotRoute)
+
+app.use("/about",AboutRoute)
+app.use("/holiday",DateholidayRoute)
+app.use("/slotholiday",SlotholidayRoute)
+
+
 
 
 

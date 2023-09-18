@@ -11,7 +11,19 @@ const path=require('path')
 const csv = require('fast-csv');
 const xlsx = require('xlsx');
 const Contact = require("../contact/contact.model");
+//const SlotHoliday = require("../slotholiday/slotholiday.model");
+const SlotHoliday = require("../slotholiday/slotholiday.model");
+const twilio = require('twilio');
+const { log } = require("console");
+const Family = require("../family/family.model");
+const accountSid = 'ACfa920c5e5afd3a6735c5a96b7c049ce4';
+   const authToken = '94dbff63063c8010b2b1f6e7ef9f4e1b';
+//const accountSid = 'YOUR_ACCOUNT_SID';
+//const authToken = 'YOUR_AUTH_TOKEN';
+const twilioClient = new twilio(accountSid, authToken);
 
+// In-memory storage for OTPs and their validity
+const otps = {};
 
 const app=express.Router()
 
@@ -19,129 +31,174 @@ const app=express.Router()
 
 
 app.post("/appointment",async(req,res)=>{
-    const {oemail,password,name,mobileNo,date}=req.body
+    //const {oemail,password,name,mobileNo,date}=req.body
     ///let blog=await Blog.create({...req.body})
 console.log('req',req.body);
       const token=req.headers["token"]
-      const decoded=jwt.decode(token)
+     const decoded=jwt.decode(token)
+     const currentDate = new Date();
 
-  console.log('decoded',decoded,decoded.role ==="patient");
+
+     const year = currentDate.getFullYear();
+     const month = currentDate.getMonth() + 1; 
+     const day = currentDate.getDate();
+     
+     
+     // You can format the date as per your requirement
+     var formattedDate = `${year}-0${month}-0${day}`;
+ // console.log('decoded',decoded,decoded.role ==="patient");
      
       try{
-   if(decoded.role ==="patient" && decoded.email==oemail){
-   if(decoded.password==password){
-      // let user=await User.findOne({email})
-      // console.log(user);
-          // if(user){
-      //let blogs=await Blog.find(query).limit(limit).skip((page-1)*limit).populate("author")
-  
-  //res.send(user)
+  //  if(decoded.role ==="patient" && decoded.email==oemail){
+  //  if(decoded.password==password){
 
-  async function checkMobileNumber(number) {
-    const accountSid1 = 'AC306d22d172cc37d63a03a11263d31f86';
-    const authToken2 = '5376de12b94e1eea62ff7180670a1633';
-    const twilioPhoneNumber = +13253997702;
-  
-    const url = `https://lookups.twilio.com/v1/PhoneNumbers/${number}?Type=carrier`;
-  
-    try {
-      const response = await axios.get(url, {
-        auth: {
-          username: accountSid1,
-          password: authToken2,
-        },
-      });
-  
-      // Check the status of the mobile number
-      if (response.data && response.data.carrier && response.data.carrier.type !== 'landline') {
-        return true; // Mobile number exists
-      } else {
-        return false; // Mobile number does not exist or is a landline
-      }
-    } catch (error) {
-      console.error('Error checking mobile number:', error);
-      return false;
-    }
-  }
-  
-  // Example usage
-  const mobileNumber = `+91${mobileNo}`;
-  checkMobileNumber(mobileNumber)
-    .then(result => {
-      console.log(result);
-      if(result){
-        const blog = new Blog({...req.body});
 
-  const data=  blog.save();
+  // async function checkMobileNumber(number) {
+  //   const accountSid1 = 'AC306d22d172cc37d63a03a11263d31f86';
+  //   const authToken2 = '5376de12b94e1eea62ff7180670a1633';
+  //   const twilioPhoneNumber = +13253997702;
+  
+  //   const url = `https://lookups.twilio.com/v1/PhoneNumbers/${number}?Type=carrier`;
+  
+  //   try {
+  //     const response = await axios.get(url, {
+  //       auth: {
+  //         username: accountSid1,
+  //         password: authToken2,
+  //       },
+  //     });
+  
+  //     // Check the status of the mobile number
+  //     if (response.data && response.data.carrier && response.data.carrier.type !== 'landline') {
+  //       return true; // Mobile number exists
+  //     } else {
+  //       return false; // Mobile number does not exist or is a landline
+  //     }
+  //   } catch (error) {
+  //     console.error('Error checking mobile number:', error);
+  //     return false;
+  //   }
+  // }
+  
+  // // Example usage
+  // const mobileNumber = `+91${mobileNo}`;
+  // checkMobileNumber(mobileNumber)
+  //   .then(result => {
+  //     console.log(result);
+  //     if(result){
+  //       const blog = new Blog({...req.body});
+
+  // const data=  blog.save();
 
         
     
-    const transporter = nodemailer.createTransport({
-              service: 'gmail',
-              auth: {
-                user: 'rutujalomate@edversetech.com',
-                pass: 'uxmgjxvczlvdbfep',
-              },
-            });
+  //   const transporter = nodemailer.createTransport({
+  //             service: 'gmail',
+  //             auth: {
+  //               user: 'rutujalomate@edversetech.com',
+  //               pass: 'uxmgjxvczlvdbfep',
+  //             },
+  //           });
           
-            // Compose the email content
-            const mailOptions = {
-              from: 'rutujalomate@edversetech.com',
-              to: 'lomaterutuja1206@gmail.com',
-              subject: 'New Appointment Booking',
-              text: `Hello Doctor,
+  //           // Compose the email content
+  //           const mailOptions = {
+  //             from: 'rutujalomate@edversetech.com',
+  //             to: 'lomaterutuja1206@gmail.com',
+  //             subject: 'New Appointment Booking',
+  //             text: `Hello Doctor,
           
-              You have a new appointment booking.
+  //             You have a new appointment booking.
           
-              Patient Name: ${name}
-              Patient mobile number: ${mobileNo}
-              oppointment date:${date}
+  //             Patient Name: ${name}
+  //             Patient mobile number: ${mobileNo}
+  //             oppointment date:${date}
   
-              Patient Email: ${oemail}
+  //             Patient Email: ${oemail}
           
           
-              Please contact the patient for further details.
+  //             Please contact the patient for further details.
           
-              Regards,
-              Your Clinic`,
-            };
+  //             Regards,
+  //             Your Clinic`,
+  //           };
           
-            // Send the email
-            transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.log(error);
-                res.status(500).json({ error: 'An error occurred while sending the email' });
-              } else {
-                console.log('Email sent: ' + info.response);
-                res.status(200).json({ message: 'Appointment booked successfully',pay:"1234" });
-              }
-            });
+  //           // Send the email
+  //           transporter.sendMail(mailOptions, (error, info) => {
+  //             if (error) {
+  //               console.log(error);
+  //               res.status(500).json({ error: 'An error occurred while sending the email' });
+  //             } else {
+  //               console.log('Email sent: ' + info.response);
+  //               res.status(200).json({ message: 'Appointment booked successfully',pay:"1234" });
+  //             }
+  //           });
 
 
-      }
-      else{
-        res.json({ message: 'please provide valid mobile number',pay:"1234" });
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
+  //     }
+  //     else{
+  //       res.json({ message: 'please provide valid mobile number',pay:"1234" });
+  //     }
+  //   })
+  //   .catch(error => {
+  //     console.error('Error:', error);
+  //   });
+
+
+
+
+
+  //         // else{
+  //         //     res.send({message:"please signup"})
+  //         // }
+  //       }
+  //       else{
+  //           res.send({message:"please enter correct password"})
+  //       }
+  //   }
+
+  //         else{
+  //  res.send({message:'please create your account'})
+  // }
+
+  //const blog = new Blog({...req.body,oemail:decoded.email});
+  const data = await Blog.create({...req.body,oemail:decoded.email});
+
+  //const data=  blog.save();
+  console.log('time',data);
+  //const SlotHoliday = new SlotHoliday({...req.body,date:req.body.date,time:req.body.time});
+   // const data6=  SlotHoliday.save();
+  if(data){
+    //const SlotHoliday = new SlotHoliday({date:req.body.date,time:req.body.time});
+    //const data6=  SlotHoliday.save();
+
+    const saveImage = SlotHoliday({
+      date: req.body.date,
+  
+      time: req.body.time,
+  
     });
+    saveImage
+      .save()
+      .then((res) => {
+        console.log("data is saved");
+      })
+      .catch((err) => {
+        console.log(err, "error has occur");
+      });
 
+      //let blog=await Famil.findByIdAndDelete({"_id":id});
 
+      let user2=await Family.findOneAndUpdate({"oemail":decoded.email},          
+      { date: req.body.date,
+        blog_id:data._id,
+        time: req.body.time, },
+    {new:true})
+    console.log('====================================');
+    console.log(user2);
+    console.log('====================================');
 
+          res.status(200).json({ message: 'Appointment booked successfully',pay:"1234" });
 
-
-          // else{
-          //     res.send({message:"please signup"})
-          // }
-        }
-        else{
-            res.send({message:"please enter correct password"})
-        }
-    }
-
-          else{
-   res.send({message:'please create your account'})
   }
    }
 
@@ -295,6 +352,8 @@ app.get("/getall",async(req,res)=>{
     const {limit,email, query}=req.query
     const searchQuery = req.query;
     const ITEMS_PER_PAGE = limit ;
+    const TotalData=await Blog.find({})
+console.log('searchQuery',searchQuery.query);
 
 try {
   if(query==''){
@@ -314,7 +373,7 @@ try {
       // const paginatedData = data.slice(startIndex, endIndex);
       const paginatedData = await Blog.find().limit(limit).skip((page-1)*limit)
 
-      res.send({paginatedData,totalPages})
+      res.send({paginatedData,totalPages,TotalData})
 
 
 
@@ -350,7 +409,7 @@ try {
       const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     
       const paginatedData = data.slice(startIndex, endIndex);
-      res.send({paginatedData,totalPages})
+      res.send({paginatedData,totalPages,TotalData})
 
           } catch (error) {
       console.error('Error fetching search results:', error);
@@ -359,7 +418,9 @@ try {
   }
   
          else if(searchQuery.query!=='') {
-          console.log('searchQuery',searchQuery);
+          //console.log('searchQuery',searchQuery);
+          console.log('searchQuery123',searchQuery.startDate,searchQuery.query);
+
           try{
             const query1 = {};
     
@@ -376,6 +437,21 @@ try {
                   if (searchQuery[field] !== '') {
                     query1[field] = searchQuery[field] === 'true'; // Convert string to boolean
                   }
+        
+                } 
+                else if (field === 'startDatek'||field === 'endDatel'){
+              //    console.log('jkhelooooooooo');
+              //    try {
+              //     const paginatedData =  Blog.find({
+              //       date: { $gte: searchQuery.startDate, $lte: searchQuery.endDate },
+              //     });
+              // console.log(paginatedData);
+              //     //res.json(filteredData);
+              //    // res.send({paginatedData})
+    
+              //   } catch (error) {
+              //     res.status(500).json({ error: 'An error occurred' });
+              //   }
         
                 } 
                 else {
@@ -403,7 +479,7 @@ try {
     const paginatedData = data.slice(startIndex, endIndex);
 // const items = await Contact.find(query1);
         //res.send(items);
-        res.send({paginatedData,totalPages})
+        res.send({paginatedData,totalPages,TotalData})
             }
     
           
@@ -445,12 +521,14 @@ app.post("/blogpost",async(req,res)=>{
 })
 
 ///used
-app.get("/:id", async(req,res)=>{
+app.get("/speblogs/:id", async(req,res)=>{
   let id=req.params.id
  // let num=Number(id)
-  //console.log(req.method,req.url)
+  console.log(id)
   //let product=db.products.find((products)=> products.id===num)
   let user=await Blog.findById({"_id":id})
+  console.log(user);
+
   try{
       if(user){
           res.send(user)
@@ -489,6 +567,12 @@ app.get("/:id", async(req,res)=>{
                 let blog=await Blog.findByIdAndDelete({"_id":id});
 
                   if(blog){
+                    const result = await SlotHoliday.deleteMany({
+                      date: blog1.date,
+                      time: blog1.time,
+                    });
+                    console.log("result",result)
+
                   res.send('oppointment deleted')
                   
 
@@ -514,7 +598,7 @@ app.get("/:id", async(req,res)=>{
   }        
   
       }catch(e){
-          res.send('can not find blog by this id ')
+          res.send(e.message)
       }
 
     })
@@ -556,13 +640,214 @@ app.get("/:id", async(req,res)=>{
 
           
     
-     app.get("/csvfile",async(req,res)=>{
-      try {
-        res.send('hii');
-      } catch (error) {
-        console.error(error);
-        res.status(500).send('An error occurred.');
-      }     }) 
+          app.get('/csv', async (req, res) => {
+            try {
+              const dataFromMongoDB = await Blog.find().lean();
+          
+              const csvStream = csv.format({ headers: true });
+              csvStream.pipe(fs.createWriteStream('datablog.csv'));
+              //const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
+        
+              dataFromMongoDB.forEach(data => {
+                csvStream.write(data);
+        
+              });
+          
+              csvStream.end();
+          
+              res.download('datablog.csv', 'MongoDatablog.csv', (err) => {
+                if (err) {
+                  console.error('Error downloading CSV:', err);
+                  res.status(500).send('Internal server error');
+                }
+        
+              });
+            } catch (error) {
+              console.error('Error generating CSV:', error);
+              res.status(500).send('Internal server error');
+            }
+          });
+
+
+          app.get('/excel', async(req, res) => {
+            // Fetch data from MongoDB and format it as an array of objects.
+            const dataFromMongo = [
+              { name: 'Alice', age: 25 },
+              { name: 'Bob', age: 30 },
+              // ... fetch more data from MongoDB
+            ];
+            const dataFromMongoD = await Blog.find().lean(); // Using .lean() to get plain objects
+            const dataFromMongoDB = dataFromMongoD.map(item => {
+
+              if(!item.visited){
+                if(item.status){
+                  v='confirmed'
+        
+                }
+                else{
+                  v='pending'
+          
+                 }
+               }else{
+                v='visited'
+        
+               }
+
+              return { _id: item._id.toString(),Name:item.name,Email:item.oemail,Age:item.age,Mobile_No:item.mobileNo,
+                date:item.date,Fees:item.Appofees,status:v };
+            });
+        
+          
+            // Create a new workbook and worksheet
+            const wb = xlsx.utils.book_new();
+            const ws = xlsx.utils.json_to_sheet(dataFromMongoDB);
+        
+        
+            const columnWidths = [];
+            dataFromMongoDB.forEach(item => {
+              Object.keys(item).forEach((key, columnIndex) => {
+                const cellValue = String(item[key]);
+                const cellWidth = cellValue.length * 1.5; // Adjust the multiplier as needed
+                if (!columnWidths[columnIndex] || cellWidth > columnWidths[columnIndex]) {
+                  columnWidths[columnIndex] = cellWidth;
+                }
+              });
+            });
+        
+            // Apply column widths to the worksheet
+            ws['!cols'] = columnWidths.map(width => ({ wch: width }));
+          
+            // Add the worksheet to the workbook
+            xlsx.utils.book_append_sheet(wb, ws, 'MongoData');
+          
+            // Write the workbook to a buffer
+            const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+          
+            // Set the appropriate headers for Excel download
+            res.setHeader('Content-Disposition', 'attachment; filename=MongoData.xlsx');
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            
+            // Send the Excel data as the response
+            res.send(buffer);
+          });
+
+
+
+          app.patch("/update/:id", async(req,res)=>{
+            let id=req.params.id
+           
+      
+            //const token=req.headers["token"]
+      
+            try{
+                
+               // const decoded=jwt.decode(token)
+               // console.log(decoded);
+        
+                
+    
+        //if(decoded.role ==="doctor"  ){
+            //let user=await Contact.findById({"_id":id});
+           // console.log("blog",contacteduser)
+                let contactreduser=await Blog.findByIdAndUpdate({"_id":id},{...req.body},{new:true})
+    
+                if(contactreduser){
+                res.send(contactreduser)
+            }else{
+                res.send("user is not found to update")
+            }  
+    
+    
+        // }
+    // else{
+    // return  res.status(403).send('not allowed to update blog')
+       
+    // //res.send(blog)
+    
+    // }        
+     }catch(e){
+                res.send(e.message)
+            }
+      
+          })
+      
+
+          app.get('/data', async (req, res) => {
+           // const startDate = new Date(req.query.startDate);
+            //const endDate = new Date(req.query.endDate);
+
+
+            const startDate = req.query.startDate;
+            const endDate = req.query.endDate;
+            
+          console.log('startDate',startDate,endDate);
+            try {
+              const paginatedData = await Blog.find({
+                date: { $gte: startDate, $lte: endDate },
+              });
+          
+              //res.json(filteredData);
+              res.send({paginatedData,totalPages:0,TotalData:0})
+
+            } catch (error) {
+              res.status(500).json({ error: 'An error occurred' });
+            }
+          });
+
+
+
+
+
+
+
+
+
+          app.post('/sendotp', (req, res) => {
+            const { mobileNo } = req.body;
+          
+            // Generate a random 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000);
+          
+            // Store OTP and its validity timestamp
+            otps[mobileNo] = { otp, timestamp: Date.now() };
+          
+            // Send OTP via Twilio
+            twilioClient.messages
+              .create({
+                body: `Your OTP is: ${otp}`,
+                from: +16109838997,
+                to: mobileNo,
+              })
+              .then(() => {
+                res.send('OTP sent successfully');
+              })
+              .catch((error) => {
+                console.error(error);
+                res.status(500).send('Failed to send OTP');
+              });
+          });
+          
+
+
+          app.post('/validate-otp', (req, res) => {
+            const { mobileNo, otp } = req.body;
+          
+            const storedOtp = otps[mobileNo];
+          
+            if (!storedOtp || otp !== storedOtp.otp || Date.now() - storedOtp.timestamp > 60000) {
+              console.log(!storedOtp || otp !== storedOtp.otp || Date.now() - storedOtp.timestamp > 60000);
+              console.log(!storedOtp);
+              console.log(otp !== storedOtp.otp);
+             /// console.log(Date.now() - storedOtp.timestamp > 60000);
+              res.status(401).send('Invalid OTP');
+            } else {
+              
+              // Valid OTP
+              res.send('OTP validated successfully');
+            }
+          });
+
+
 
 
 

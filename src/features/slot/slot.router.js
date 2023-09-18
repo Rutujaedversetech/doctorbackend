@@ -3,74 +3,51 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-//const Slider = require('./slideshow.model');
+const Slider = require('./slot.model');
 const fs = require('fs');
-const Beforeafter = require('./servicedetails.model');
-const ServiceDetails = require('./servicedetails.model');
+const ImageModel = require('./slot.model');
+const Service = require('./slot.model');
+const Card = require('./slot.model');
+const Slot = require('./slot.model');
 const PDFDocument = require('pdfkit');
 const xlsx = require('xlsx');
 const csv = require('fast-csv');
 
+
 const app = express();
-app.use(express.json({ limit: '10mb' })); // Adjust the limit as needed
 
-// Set up the file storage using multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'Slideshowmedia'); // Specify the directory where files will be stored
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const fileExtension = path.extname(file.originalname);
-    cb(null, uniqueSuffix + fileExtension);
-  }
-});
-
-//const upload = multer();
-const upload = multer({ dest: 'Slideshowmedia/' })
 
 
 // Handle the file upload
+app.post("/upload", (req, res) => {
+  console.log(req.file,req.body);
+  const saveImage = Slot({
+    time: req.body.time,
 
-app.post('/upload', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
-    try {
-        // const uploadedImages = req.files; // Array of uploaded image files
-
-        // if (uploadedImages.length !== 2) {
-        //   return res.status(400).json({ error: 'Please upload exactly two images' });
-        // }
-    console.log(req.body.service,req.body.description);
-        const imageRecord = {
-             image1 :req.files['image1'][0].path,
-             image2 : req.files['image2'][0].path,
-             service:req.body.service,
-             description:req.body.description
-          
-        };
-    
-        const insertedImage = await ServiceDetails.create(imageRecord);
-        res.send(insertedImage)
-    
-       // res.status(201).json({ message: 'Images uploaded and saved to the database', image: insertedImage });
-    } catch (error) {
-     // res.status(500).json({ error: 'An error occurred while uploading images' });
-      res.send(error)
-
-    }
   });
-
+  saveImage
+    .save()
+    .then((res) => {
+      console.log("data is saved");
+    })
+    .catch((err) => {
+      console.log(err, "error has occur");
+    });
+    res.send(saveImage)
+});
 
 
 app.get("/getall",async(req,res)=>{
 
+ 
   const {limit ,query}=req.query
   const ITEMS_PER_PAGE = limit ;
-  const TotalData= await ServiceDetails.find();
+  const TotalData=await Slot.find({})
 
   try{
     if(query==''){
       console.log('it is empty');
-      const items= await ServiceDetails.find();
+      const items= await Slot.find();
         //res.send(items)
         const page = parseInt(req.query.page) || 1; // Extract the page number from the query params, default to 1
         console.log('page',page);
@@ -78,15 +55,15 @@ app.get("/getall",async(req,res)=>{
         const endIndex = startIndex + ITEMS_PER_PAGE;
               // let data=await Contact.find()
       
-               const data1 = await ServiceDetails.find()
+               const data1 = await Slot.find()
     const totalItems = data1.length; // Replace with the total number of items from your data source
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
       
         // const paginatedData = data.slice(startIndex, endIndex);
-        const paginatedData = await ServiceDetails.find().limit(limit).skip((page-1)*limit)
+        const paginatedData = await Slot.find().limit(limit).skip((page-1)*limit)
   
         res.send({paginatedData,totalPages,TotalData})
- // res.send(data1)
+  //res.send(data1)
 
   
   
@@ -110,9 +87,8 @@ app.get("/getall",async(req,res)=>{
         // publish:{type:String},
   
   
-        const data = await ServiceDetails.find({$or: [
-          { service: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } },
+        const data = await Slot.find({$or: [
+          { time: { $regex: query, $options: 'i' } },
 
 
   
@@ -131,60 +107,62 @@ app.get("/getall",async(req,res)=>{
     }
 
   }
+
 catch(e){
-    res.send(e.message)
+  res.send(e.message)
 }
 })
 
 
 app.delete("/:id", async(req,res)=>{
-  let id=req.params.id
- console.log("id",id);
+let id=req.params.id
+console.log("id",id);
 
- // const token=req.headers["token"]
+// const token=req.headers["token"]
 
-  try{
-      
-      // const decoded=jwt.decode(token)
-      // console.log(decoded);
+try{
+    
+    // const decoded=jwt.decode(token)
+    // console.log(decoded);
 
-      // if(decoded.role ==="doctor" || decoded.role==="admin" ){
-          let blog1=await ServiceDetails.findById({"_id":id});
-          console.log("blog",blog1)
-          // if(decoded.id==blog1.author){
-            let blog=await ServiceDetails.findByIdAndDelete({"_id":id});
+    // if(decoded.role ==="doctor" || decoded.role==="admin" ){
+        let blog1=await Slot.findById({"_id":id});
+        console.log("blog",blog1)
+        // if(decoded.id==blog1.author){
+          let blog=await Slot.findByIdAndDelete({"_id":id});
 
-              if(blog){
-              res.send('data deleted')
+            if(blog){
+            res.send('data deleted')
 
-          }else{
-              res.send("data is not found to delete")
-          }  
-        // }else{
-        //     res.send(' cant delete other writers blog')
-        // }
+        }else{
+            res.send("data is not found to delete")
+        }  
+      // }else{
+      //     res.send(' cant delete other writers blog')
+      // }
 
 //       }
 // else{
 // return  res.status(403).send('not allowed to delete oppointment')
-     
+   
 // //res.send(blog)
 
 // }        
 
-  }catch(e){
-      res.send('can not find blog by this id ')
-  }
+}catch(e){
+    res.send('can not find blog by this id ')
+}
 
 })
 
 
+
 app.get('/csv', async (req, res) => {
   try {
-    const dataFromMongoDB = await ServiceDetails.find().lean();
+    const dataFromMongoDB = await Slot.find().lean();
 
     const csvStream = csv.format({ headers: true });
-    csvStream.pipe(fs.createWriteStream('dataservice.csv'));
+    csvStream.pipe(fs.createWriteStream('dataslot.csv'));
     //const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
 
     dataFromMongoDB.forEach(data => {
@@ -194,7 +172,7 @@ app.get('/csv', async (req, res) => {
 
     csvStream.end();
 
-    res.download('dataservice.csv', 'MongoDataService.csv', (err) => {
+    res.download('dataslot.csv', 'MongoDataService.csv', (err) => {
       if (err) {
         console.error('Error downloading CSV:', err);
         res.status(500).send('Internal server error');
@@ -215,7 +193,7 @@ app.get('/excel', async(req, res) => {
     { name: 'Bob', age: 30 },
     // ... fetch more data from MongoDB
   ];
-  const dataFromMongoD = await ServiceDetails.find().lean(); // Using .lean() to get plain objects
+  const dataFromMongoD = await Slot.find().lean(); // Using .lean() to get plain objects
   const dataFromMongoDB = dataFromMongoD.map(item => {
 
     
@@ -223,7 +201,7 @@ app.get('/excel', async(req, res) => {
      
 
 
-    return { _id: item._id.toString(),service:item.service,description:item.description};
+    return { _id: item._id.toString(),Time:item.time};
   });
 
 
@@ -267,11 +245,11 @@ app.get('/excel', async(req, res) => {
 app.get("/pdf",async(req,res)=>{
 
   const doc = new PDFDocument();
-const stream = doc.pipe(fs.createWriteStream('dataservice.pdf')); // Pipe the PDF to a file stream
+const stream = doc.pipe(fs.createWriteStream('dataSlot.pdf')); // Pipe the PDF to a file stream
 
 try {
 // Connect to MongoDB and fetch data
-const data = await ServiceDetails.find({});
+const data = await Slot.find({});
 
 
 let y = 30;
@@ -279,7 +257,7 @@ const margin = 10;
 const columnWidths = [100,100]; // Adjust column widths as needed
 
 // Draw table header
-drawRow(['Service', 'Description'], doc, y, columnWidths);
+drawRow(['Timing', 'delete'], doc, y, columnWidths);
 y += 40;
 
 // Draw table rows
@@ -305,7 +283,7 @@ let s;
 
 
 
-drawRow([item.service, item.description], doc, y, columnWidths);
+drawRow([item.time,], doc, y, columnWidths);
 y += 40;
 }
 
@@ -327,8 +305,8 @@ doc.end();
 stream.on('finish', () => {
 // Send the generated PDF as a response
 res.setHeader('Content-Type', 'application/pdf');
-res.setHeader('Content-Disposition', 'attachment; filename="dataservice.pdf"');
-fs.createReadStream('dataservice.pdf').pipe(res);
+res.setHeader('Content-Disposition', 'attachment; filename="dataSlot.pdf"');
+fs.createReadStream('dataSlot.pdf').pipe(res);
 });
 } catch (error) {
 console.error('Error generating PDF:', error);
@@ -336,6 +314,9 @@ res.status(500).send('Internal Server Error');
 }
 
       })
+
+
+
 
 
 

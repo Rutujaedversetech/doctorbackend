@@ -49,7 +49,8 @@ const upload = multer({ dest: 'Slideshowmedia/' })
       .catch((err) => {
         console.log(err, "error has occur");
       });
-      res.send(saveImage)
+   //   res.send({message:"slide added sucessfully",data:saveImage})
+   res.send(saveImage)
   
 
   } catch (error) {

@@ -262,69 +262,125 @@ console.log("Current Date:", formattedDate);
        }
       })
     
-      // function drawRow(rowData, doc, y, columnWidths) {
-      //   let x = 10; // Starting x-coordinate
-      //   for (let i = 0; i < rowData.length; i++) {
-      //     doc.text(rowData[i], x, y, { width: columnWidths[i] });
-      //     x += columnWidths[i]+10;
-      //   }
-      // }
+  //     function drawRow(rowData, doc, y, columnWidths) {
+  //       let x = 10; // Starting x-coordinate
+  //       for (let i = 0; i < rowData.length; i++) {
+  //         doc.text(rowData[i], x, y, { width: columnWidths[i] });
+  //         x += columnWidths[i]+10;
+  //       }
+  //     }
       
 
+      
+      
   
 
-      app.get("/pdf",async(req,res)=>{
+  //     app.get("/pdf",async(req,res)=>{
 
-        const doc = new PDFDocument();
-  const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
+  //       const doc = new PDFDocument();
+  // const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
 
-  try {
-    // Connect to MongoDB and fetch data
-    const data = await Contact.find({});
+  // try {
+  //   // Connect to MongoDB and fetch data
+  //   const data = await Contact.find({});
    
 
-    let y = 30;
-    const margin = 10;
-    const columnWidths = [120, 120, 120, 120, 120]; // Adjust column widths as needed
+  //   let y = 30;
+  //   const margin = 10;
+  //   const columnWidths = [120, 120, 120, 120, 120]; // Adjust column widths as needed
 
-    // Draw table header
-    drawRow(['Name', 'Email', 'Subject', 'Message', 'Date'], doc, y, columnWidths);
-    y += 40;
+  //   // Draw table header
+  //   drawRow(['Name', 'Email', 'Subject', 'Message', 'Date'], doc, y, columnWidths);
+  //   y += 40;
 
-    // Draw table rows
-    for (const item of data) {
-      drawRow([item.name, item.email, item.subject, item.message, item.Date], doc, y, columnWidths);
-      y += 40;
-    }
+  //   // Draw table rows
+  //   for (const item of data) {
+  //      drawRow([item.name, item.email, item.subject, item.message, item.Date], doc, y, columnWidths);
+  //     y += 10;
+  //   }
 
 
 
 
 
     
-    // Finalize and close PDF
-    doc.end();
+  //   // Finalize and close PDF
+  //   doc.end();
 
-    // Wait for the PDF stream to finish writing
-    stream.on('finish', () => {
-      // Send the generated PDF as a response
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="data.pdf"');
-      fs.createReadStream('data.pdf').pipe(res);
-    });
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    res.status(500).send('Internal Server Error');
+  //   // Wait for the PDF stream to finish writing
+  //   stream.on('finish', () => {
+  //     // Send the generated PDF as a response
+  //     res.setHeader('Content-Type', 'application/pdf');
+  //     res.setHeader('Content-Disposition', 'attachment; filename="data.pdf"');
+  //     fs.createReadStream('data.pdf').pipe(res);
+  //   });
+  // } catch (error) {
+  //   console.error('Error generating PDF:', error);
+  //   res.status(500).send('Internal Server Error');
+  // }
+
+  //           })
+
+
+
+
+
+  const lineHeight = 15
+  function drawRow(rowData, doc, y, columnWidths) {
+    const lineHeight = 15; // Assuming a standard line height, you can adjust this
+    let x = 10; // Starting x-coordinate
+    const cellY = y; // Store the initial y position for each cell in the row
+    for (let i = 0; i < rowData.length; i++) {
+      const contentHeight = doc.heightOfString(rowData[i], { width: columnWidths[i] });
+      const yOffset = Math.max((lineHeight - contentHeight) / 2, 0); // Calculate y offset to center content
+      doc.text(rowData[i], x, cellY + yOffset, { width: columnWidths[i] });
+      x += columnWidths[i] + 10;
+    }
   }
-
-            })
-
-
-
-
-
-
-
+  
+  
+  // ...
+  
+  app.get("/pdf", async (req, res) => {
+    const doc = new PDFDocument();
+    const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
+  
+    try {
+      // Connect to MongoDB and fetch data
+      const data = await Contact.find({});
+  
+      let y = 30;
+      const margin = 10;
+      const columnWidths = [120, 120, 120, 120, 120]; // Adjust column widths as needed
+  
+      // Draw table header
+      drawRow(['Name', 'Email', 'Subject', 'Message', 'Date'], doc, y, columnWidths);
+      y += 40;
+  
+      // Draw table rows
+      for (const item of data) {
+        const rowData = [item.name, item.email, item.subject, item.message, item.Date];
+        drawRow(rowData, doc, y, columnWidths);
+        const maxContentHeight = Math.max(...rowData.map(content => doc.heightOfString(content, { width: columnWidths[rowData.indexOf(content)] })));
+        y += Math.max(maxContentHeight, lineHeight); // Adjust y based on max content height
+      }
+  
+      // Finalize and close PDF
+      doc.end();
+  
+      // Wait for the PDF stream to finish writing
+      stream.on('finish', () => {
+        // Send the generated PDF as a response
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="data.pdf"');
+        fs.createReadStream('data.pdf').pipe(res);
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
 
 
 
@@ -357,6 +413,7 @@ app.get("/getall",async(req,res)=>{
  // console.log(q)
   const searchQuery = req.query;
 
+  const TotalData = await Contact.find()
 
   const ITEMS_PER_PAGE = limit ;
 
@@ -378,7 +435,7 @@ app.get("/getall",async(req,res)=>{
         // const paginatedData = data.slice(startIndex, endIndex);
         const paginatedData = await Contact.find().limit(limit).skip((page-1)*limit)
 
-        res.send({paginatedData,totalPages})
+        res.send({paginatedData,totalPages,TotalData})
 
           }
      if(query){
@@ -408,7 +465,7 @@ app.get("/getall",async(req,res)=>{
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
       
         const paginatedData = data.slice(startIndex, endIndex);
-        res.send({paginatedData,totalPages})
+        res.send({paginatedData,totalPages,TotalData})
 
             } catch (error) {
         console.error('Error fetching search results:', error);
@@ -457,7 +514,7 @@ app.get("/getall",async(req,res)=>{
     const paginatedData = data.slice(startIndex, endIndex);
 // const items = await Contact.find(query1);
         //res.send(items);
-        res.send({paginatedData,totalPages})
+        res.send({paginatedData,totalPages,TotalData})
 
   
           //let user=await User.findOne({email:decoded.email})
@@ -507,7 +564,7 @@ app.post("/blogpost",async(req,res)=>{
 })
 
 ///used
-app.get("/:id", async(req,res)=>{
+app.get("/specific/:id", async(req,res)=>{
   let id=req.params.id
  // let num=Number(id)
   //console.log(req.method,req.url)

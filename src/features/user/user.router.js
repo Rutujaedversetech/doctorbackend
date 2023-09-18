@@ -6,6 +6,10 @@ const axios = require('axios');
 const app=express.Router()
 const nodemailer = require('nodemailer');
 const EmailVerifier = require('email-verifier');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const xlsx = require('xlsx');
+const csv = require('fast-csv');
 
 
 app.use(express.urlencoded({extended:true}))
@@ -33,6 +37,7 @@ const token=req.headers["token"]
     //             res.status(403).send("you are not allowed to create patient")
     //         }
     //     }
+    
 
     // }
 
@@ -266,15 +271,33 @@ console.log(`Current date: ${year}-${month}-${day}`);
 app.post("/login",async(req,res)=>{
     const {email,password}=req.body
     console.log(email,password)
+    const currentDate = new Date();
+
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1; 
+    const day = currentDate.getDate();
+    const hours = currentDate.getHours();
+const minutes = currentDate.getMinutes();
+const seconds = currentDate.getSeconds();
+    
+    // You can format the date as per your requirement
+    var formattedDate = `${day}-0${month}-${year}  ${hours}:${minutes}:${seconds}`;
+    
+    //console.log("Current Date:", formattedDate);
 
     try{
        let user=await User.findOne({email})
        //console.log(user)
        if(user){
         if(user.password===password){
-            const token=jwt.sign({id:user._id,name:user.name,age:user.age,role:user.role,email:user.email,password:user.password},"Secreate123",
+            const token=jwt.sign({id:user._id,isLoggedin: true,isLoggedinTime:formattedDate,name:user.name,age:user.age,role:user.role,email:user.email,password:user.password},"Secreate123",
             {expiresIn:'12 day'}
             )
+                   let user2=await User.findByIdAndUpdate({"_id":user.id},          
+                     { isLoggedin: true,isLoggedinTime:formattedDate },
+                   {new:true})
+
 
             const refreshtoken=jwt.sign({},"Secreaterefresh123",
             {expiresIn:'13 days'})
@@ -304,6 +327,7 @@ app.get("/getall",async(req,res)=>{
     const ITEMS_PER_PAGE = limit ;
     const { role,name,email } = searchQuery;
     const { is_superAdmin } = searchQuery;
+    const TotalData=await User.find({})
 
 
 try {
@@ -324,7 +348,7 @@ try {
       // const paginatedData = data.slice(startIndex, endIndex);
       const paginatedData = await User.find().limit(limit).skip((page-1)*limit)
 
-      res.send({paginatedData,totalPages})
+      res.send({paginatedData,totalPages,TotalData})
 
 
 
@@ -357,7 +381,7 @@ try {
       const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     
       const paginatedData = data.slice(startIndex, endIndex);
-      res.send({paginatedData,totalPages})
+      res.send({paginatedData,totalPages,TotalData})
 
           } catch (error) {
       console.error('Error fetching search results:', error);
@@ -513,7 +537,7 @@ console.log('query1',query1);
 
 // }
 
-        res.send({paginatedData,totalPages})
+        res.send({paginatedData,totalPages,TotalData})
 
 
 
@@ -575,6 +599,11 @@ console.log('query1',query1);
   app.post("/logout",async(req,res)=>{
     const token=req.headers.token
 blacklist.push(token)
+const decoded=jwt.decode(token)
+
+let user2=await User.findByIdAndUpdate({"_id":decoded.id},          
+                     { isLoggedin: false },
+                   {new:true})
 return res.send('logged out sucessfully')
 })
 
@@ -741,6 +770,184 @@ blacklist.push(token)
         }
   
       })
+
+
+
+
+      app.get('/csv', async (req, res) => {
+        try {
+          const dataFromMongoDB = await User.find().lean();
+      
+          const csvStream = csv.format({ headers: true });
+          csvStream.pipe(fs.createWriteStream('datausers.csv'));
+          //const stream = doc.pipe(fs.createWriteStream('data.pdf')); // Pipe the PDF to a file stream
+    
+          dataFromMongoDB.forEach(data => {
+            csvStream.write(data);
+    
+          });
+      
+          csvStream.end();
+      
+          res.download('datausers.csv', 'MongoDataUsers.csv', (err) => {
+            if (err) {
+              console.error('Error downloading CSV:', err);
+              res.status(500).send('Internal server error');
+            }
+    
+          });
+        } catch (error) {
+          console.error('Error generating CSV:', error);
+          res.status(500).send('Internal server error');
+        }
+      });
+
+
+      app.get('/excel', async(req, res) => {
+        // Fetch data from MongoDB and format it as an array of objects.
+        const dataFromMongo = [
+          { name: 'Alice', age: 25 },
+          { name: 'Bob', age: 30 },
+          // ... fetch more data from MongoDB
+        ];
+        const dataFromMongoD = await User.find().lean(); // Using .lean() to get plain objects
+        const dataFromMongoDB = dataFromMongoD.map(item => {
+
+          if(item.is_superAdmin){
+            v="Yes"
+          }
+          else{
+            v='No'
+    
+           }
+  
+           if(item.role=="staff"){
+            s="Yes"
+          }
+          else{
+            s='No'
+    
+           }
+  
+
+          return { _id: item._id.toString(),Name:item.name,Email:item.email,superAdmin:v,staff:s,
+            JOINED_DATE	:item.date };
+        });
+    
+      
+        // Create a new workbook and worksheet
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet(dataFromMongoDB);
+    
+    
+        const columnWidths = [];
+        dataFromMongoDB.forEach(item => {
+          Object.keys(item).forEach((key, columnIndex) => {
+            const cellValue = String(item[key]);
+            const cellWidth = cellValue.length * 1.5; // Adjust the multiplier as needed
+            if (!columnWidths[columnIndex] || cellWidth > columnWidths[columnIndex]) {
+              columnWidths[columnIndex] = cellWidth;
+            }
+          });
+        });
+    
+        // Apply column widths to the worksheet
+        ws['!cols'] = columnWidths.map(width => ({ wch: width }));
+      
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, 'MongoData');
+      
+        // Write the workbook to a buffer
+        const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+      
+        // Set the appropriate headers for Excel download
+        res.setHeader('Content-Disposition', 'attachment; filename=MongoData.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        
+        // Send the Excel data as the response
+        res.send(buffer);
+      });
+
+
+
+
+
+      app.get("/pdf",async(req,res)=>{
+
+        const doc = new PDFDocument();
+  const stream = doc.pipe(fs.createWriteStream('data34.pdf')); // Pipe the PDF to a file stream
+
+  try {
+    // Connect to MongoDB and fetch data
+    const data = await User.find({});
+   
+
+    let y = 30;
+    const margin = 10;
+    const columnWidths = [80, 90, 50, 80, 80,80,80]; // Adjust column widths as needed
+
+    // Draw table header
+    drawRow(['Name', 'Email', 'superuser', 'staff', 'joined_Date','last_login'], doc, y, columnWidths);
+    y += 40;
+
+    // Draw table rows
+    for (const item of data) {
+let v;
+let s;
+
+        if(item.is_superAdmin){
+          v="Yes"
+        }
+        else{
+          v='No'
+  
+         }
+
+         if(item.role=="staff"){
+          s="Yes"
+        }
+        else{
+          s='No'
+  
+         }
+
+
+
+      drawRow([item.name, item.email,v,s, item.date,0], doc, y, columnWidths);
+      y += 40;
+    }
+
+
+      function drawRow(rowData, doc, y, columnWidths) {
+        let x = 10; // Starting x-coordinate
+        for (let i = 0; i < rowData.length; i++) {
+          doc.text(rowData[i], x, y, { width: columnWidths[i] });
+          x += columnWidths[i]+10;
+        }
+      }
+
+
+    
+    // Finalize and close PDF
+    doc.end();
+
+    // Wait for the PDF stream to finish writing
+    stream.on('finish', () => {
+      // Send the generated PDF as a response
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="data3.pdf"');
+      fs.createReadStream('data3.pdf').pipe(res);
+    });
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).send('Internal Server Error');
+  }
+
+            })
+
+
+
+
 
 
     module.exports=app
